@@ -7,6 +7,7 @@ from selenium.webdriver import ActionChains
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import time
@@ -77,6 +78,14 @@ def scrape_progressive():
                 address_element = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.Io6YTe.fontBodyMedium.kR99db")))
                 address = address_element.text
 
+                # Remplacer les abréviations dans l'adresse
+                address = address.replace("Pl.", "Place")
+                address = address.replace("Av.", "Avenue")
+                address = address.replace("Bd", "Boulevard")
+                address = address.replace("Ter", "T")
+                address = address.replace("Rte", "Route")
+                address = address.replace("Bis", "B")
+
                 # Récupérer le contenu de la page
                 page_source = browser.page_source
 
@@ -91,9 +100,9 @@ def scrape_progressive():
 
                 # Créer un dictionnaire avec les données récupérées
                 result_item = {
-                    "name": restaurant_name,
-                    "address": address,
-                    "phone": phone_number
+                    "Nom de l'établissement": restaurant_name,
+                    "Addresse": address,
+                    "Téléphone": phone_number
                 }
                 results.append(result_item)
 
@@ -116,7 +125,7 @@ def scrape_progressive():
 
     # Une fois le scraping de Google Maps terminé, effectuez la recherche sur le site annuaire-entreprises.data.gouv.fr
     for result in results:
-        address = result["address"]
+        address = result["Addresse"]
 
         # Aller sur le site annuaire-entreprises.data.gouv.fr
         browser.get("https://annuaire-entreprises.data.gouv.fr/")
@@ -133,8 +142,22 @@ def scrape_progressive():
         search_input.send_keys(Keys.RETURN)  # Appuyer sur la touche Entrée pour lancer la recherche
 
         # Attendre que la page se charge après la recherche
-        time.sleep(5)
+        try:
+            # Attendre que la page se charge après la recherche
+            wait = WebDriverWait(browser, 10)  # Attendre jusqu'à 10 secondes maximum
+            wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "style_result-item__fKcQt")))
+        except TimeoutException:
+            print("La recherche n'a pas abouti. Passer à la prochaine recherche.")
+            continue  # Passer à la prochaine itération de la boucle
 
+
+        # Maintenant, faire défiler la page vers le bas pour charger davantage de contenu
+        browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+        # Attendre un court instant pour que le contenu supplémentaire se charge
+        time.sleep(3)  # Vous pouvez ajuster ce délai en fonction de la vitesse de chargement de la page
+
+        # Extraire les données de la page
         page_source = browser.page_source
         soup = BeautifulSoup(page_source, "html.parser")
         results_divs = soup.find_all("div", class_="style_result-item__fKcQt")
@@ -149,10 +172,9 @@ def scrape_progressive():
                         prenom = name_parts[1].replace(")", "").strip()
                         print("Nom:", nom)
                         print("Prénom:", prenom)
+
         # Afficher un message dans la console pour indiquer que la recherche est terminée
         print("Recherche papier réussie")
-
-        # Vous pouvez ajouter le code pour extraire les informations des entreprises à partir de la page annuaire-entreprises.data.gouv.fr ici
 
     browser.quit()
 
