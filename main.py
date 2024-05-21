@@ -59,7 +59,7 @@ def scrape_progressive():
                 action.scroll_from_origin(scroll_origin, 0, 30).perform()
                 time.sleep(2)
 
-            max_results = 5
+            max_results = 30
             results_count = 0
 
             for i in range(min(max_results, len(elements))): 
@@ -78,6 +78,11 @@ def scrape_progressive():
                     address_element = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.Io6YTe.fontBodyMedium.kR99db")))
                     address = address_element.text
 
+                    phone_button_selector = "button.CsEnBe[aria-label*='téléphone']"
+                    phone_element = WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, phone_button_selector)))
+                    aria_label = phone_element.get_attribute("aria-label")
+                    phone_number = aria_label.split(":")[1].strip()
+
                     address = address.replace("Pl.", "Place")
                     address = address.replace("Av.", "Avenue")
                     address = address.replace("Bd", "Boulevard")
@@ -85,18 +90,7 @@ def scrape_progressive():
                     address = address.replace("Rte", "Route")
                     address = address.replace("Bis", "B")
 
-                    page_source = browser.page_source
 
-                    phone_pattern = re.compile(r'(\d{2} \d{2} \d{2} \d{2} \d{2})')
-                    matches = phone_pattern.findall(page_source)
-                    
-                    unique_matches = list(set(matches))
-                    print(unique_matches)
-
-                    if unique_matches:
-                        phone_number = unique_matches[0]  
-                    else:
-                        phone_number = None 
 
                     result_item = {
                         "Nom": restaurant_name,
