@@ -170,35 +170,25 @@ a:hover {
         <input type="text" id="search_query" name="search_query" placeholder="Entrez votre recherche...">
         <button type="submit">Rechercher</button>
     </form>
-    <h1>Fusionner deux CSV</h1>
-    <form action="/merge" method="post" enctype="multipart/form-data">
-        <label for="file1">Fichier CSV 1:</label>
-        <input type="file" name="file1" id="file1" accept=".csv" required><br><br>
-        <label for="file2">Fichier CSV 2:</label>
-        <input type="file" name="file2" id="file2" accept=".csv" required><br><br>
-        <input type="submit" value="Fusionner">
-    </form>
     <table>
         <thead>
             <tr>
-                <th>URL</th>
-                <th>Email</th>
-                <th>Numéro de téléphone</th>
+                <th>Nom</th>
+                <th>Adresse</th>
+                <th>Nom du dirigeant</th>
+                <th>Telephone</th>
             </tr>
         </thead>
         <tbody>
             {% for result in results %}
             <tr>
-                <td>{{ result.url }}</td>
-                <td>{{ result.email }}</td>
-                <td>{{ result.phone_number }}</td>
+                <td>{{ result["Nom"] }}</td>
+                <td>{{ result["Adresse"] }}</td>
+                <td>{{ result["Nom du dirigeant"] }}</td>
+                <td>{{ result["Telephone"] }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {% if download %}
-    <a href="{{ url_for('download_csv', results=results_json) }}">Télécharger CSV</a>
-    {% endif %}
-
 </body>
 </html>
