@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request
 from flask_dependencies import *
 
-
 app = Flask(__name__)
 
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -18,11 +17,19 @@ def scrape_progressive():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--ignore-certificate-errors")
 
-    browser = webdriver.Chrome(options=chrome_options)
+    #browser = webdriver.Chrome(options=chrome_options)
+    browser = webdriver.Remote(
+        command_executor="http://162.19.67.246:4444/wd/hub",
+        options=chrome_options
+    )
+
+    browser2 = webdriver.Remote(
+        command_executor="http://162.19.67.246:4444/wd/hub",
+        options=chrome_options
+    )
 
     results = []
     result_item2_list = []
-    
 
     def progressive_extraction():
             nonlocal results
@@ -46,7 +53,7 @@ def scrape_progressive():
                 action.scroll_from_origin(scroll_origin, 0, 30).perform()
                 time.sleep(2)
 
-            max_results = 2
+            max_results = 3
             results_count = 0
 
             for i in range(min(max_results, len(elements))): 
@@ -77,8 +84,6 @@ def scrape_progressive():
                     address = address.replace("Rte", "Route")
                     address = address.replace("Bis", "B")
 
-
-
                     result_item = {
                         "Nom": restaurant_name,
                         "Adresse": address,
@@ -102,7 +107,6 @@ def scrape_progressive():
     except Exception as e:
         print("Error occurred while clicking 'Accept All':", e)
 
-
     progressive_extraction()
     final_results = []
     for result in results:
@@ -111,20 +115,18 @@ def scrape_progressive():
         address = result["Adresse"]
         telephone = result["Telephone"]
         print(f"Searching for {nom} at {address}")
-        browser.get("https://annuaire-entreprises.data.gouv.fr/")
+        browser2.get("https://annuaire-entreprises.data.gouv.fr/")
         time.sleep(5)
-        search_input = browser.find_element(By.ID, "search-input-input")
+        search_input = browser2.find_element(By.ID, "search-input-input")
         search_input.clear() 
         search_input.send_keys(address) 
         search_input.send_keys(Keys.RETURN)  
 
         time.sleep(5)
 
-
         address_cleaned = address.replace(",", "")
-        result_links = browser.find_elements(By.CSS_SELECTOR, "a.result-link")
+        result_links = browser2.find_elements(By.CSS_SELECTOR, "a.result-link")
         print(f"Found {len(result_links)} result links")
-
 
         for link in result_links:
             link_text = link.text
@@ -142,15 +144,33 @@ def scrape_progressive():
                     "Nom du dirigeant": nom_dirigeant,
                     "Telephone": telephone,
                 }
+
+                browser2.execute_script(f"window.open('{link_url}', '_blank');")
+                print(f"Successfully opened the link for {nom}")
+                window_handles = browser2.window_handles
+                browser2.switch_to.window(window_handles[-1])  # Passe à la nouvelle fenêtre/onglet
+
+                # Trouve l'élément h2 spécifique et récupère son texte
+                legal_info_elements = browser2.find_elements(By.CSS_SELECTOR, "td.styleSimple_cell__OckvR")
+                eighteenth_legal_info_element = legal_info_elements[17]
+                eighteenth_legal_info_text = eighteenth_legal_info_element.text
+                result_item2 = {
+                "Nom": nom,
+                "Adresse": address, 
+                "Nom du dirigeant": nom_dirigeant,
+                "Telephone": telephone,
+                "Nombre d employe": eighteenth_legal_info_text # Utiliser la variable modifiée
+}
+                print(result_item2)
                 result_item2_list.append(result_item2)
                 print(result_item2)
-                browser.execute_script(f"window.open('{link_url}', '_blank');")
-                print(f"Successfully opened the link for {nom}")
+                # Affiche le texte récupéré
+                print(eighteenth_legal_info_text)
                 break
         else:
             print("No matching link found")
 
-    browser.quit()
+    browser2.quit()
     return render_template('index.html', results=result_item2_list)
 
 if __name__ == '__main__':
