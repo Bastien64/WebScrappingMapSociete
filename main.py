@@ -17,16 +17,7 @@ def scrape_progressive():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--ignore-certificate-errors")
 
-    #browser = webdriver.Chrome(options=chrome_options)
-    browser = webdriver.Remote(
-        command_executor="http://162.19.67.246:4444/wd/hub",
-        options=chrome_options
-    )
-
-    browser2 = webdriver.Remote(
-        command_executor="http://162.19.67.246:4444/wd/hub",
-        options=chrome_options
-    )
+    browser = webdriver.Chrome(options=chrome_options)
 
     results = []
     result_item2_list = []
@@ -53,7 +44,7 @@ def scrape_progressive():
                 action.scroll_from_origin(scroll_origin, 0, 30).perform()
                 time.sleep(2)
 
-            max_results = 3
+            max_results = 30
             results_count = 0
 
             for i in range(min(max_results, len(elements))): 
@@ -115,9 +106,9 @@ def scrape_progressive():
         address = result["Adresse"]
         telephone = result["Telephone"]
         print(f"Searching for {nom} at {address}")
-        browser2.get("https://annuaire-entreprises.data.gouv.fr/")
+        browser.get("https://annuaire-entreprises.data.gouv.fr/")
         time.sleep(5)
-        search_input = browser2.find_element(By.ID, "search-input-input")
+        search_input = browser.find_element(By.ID, "search-input-input")
         search_input.clear() 
         search_input.send_keys(address) 
         search_input.send_keys(Keys.RETURN)  
@@ -125,7 +116,7 @@ def scrape_progressive():
         time.sleep(5)
 
         address_cleaned = address.replace(",", "")
-        result_links = browser2.find_elements(By.CSS_SELECTOR, "a.result-link")
+        result_links = browser.find_elements(By.CSS_SELECTOR, "a.result-link")
         print(f"Found {len(result_links)} result links")
 
         for link in result_links:
@@ -145,13 +136,13 @@ def scrape_progressive():
                     "Telephone": telephone,
                 }
 
-                browser2.execute_script(f"window.open('{link_url}', '_blank');")
+                browser.execute_script(f"window.open('{link_url}', '_blank');")
                 print(f"Successfully opened the link for {nom}")
-                window_handles = browser2.window_handles
-                browser2.switch_to.window(window_handles[-1])  # Passe à la nouvelle fenêtre/onglet
+                window_handles = browser.window_handles
+                browser.switch_to.window(window_handles[-1])  # Passe à la nouvelle fenêtre/onglet
 
                 # Trouve l'élément h2 spécifique et récupère son texte
-                legal_info_elements = browser2.find_elements(By.CSS_SELECTOR, "td.styleSimple_cell__OckvR")
+                legal_info_elements = browser.find_elements(By.CSS_SELECTOR, "td.styleSimple_cell__OckvR")
                 eighteenth_legal_info_element = legal_info_elements[17]
                 eighteenth_legal_info_text = eighteenth_legal_info_element.text
                 result_item2 = {
@@ -170,7 +161,7 @@ def scrape_progressive():
         else:
             print("No matching link found")
 
-    browser2.quit()
+    browser.quit()
     return render_template('index.html', results=result_item2_list)
 
 if __name__ == '__main__':
